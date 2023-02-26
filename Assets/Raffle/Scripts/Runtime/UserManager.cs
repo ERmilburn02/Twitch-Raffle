@@ -6,6 +6,8 @@ namespace Raffle
 {
     public class UserManager : Singleton<UserManager>
     {
+        private const string SaveDataPath = "Saves/Users";
+
         private List<GameUser> m_KnownUsers = new List<GameUser>();
         private List<GameUser> m_CurrentUsers = new List<GameUser>();
 
@@ -89,6 +91,68 @@ namespace Raffle
             connection.SendChatMessage(formattedMessage);
         }
 
+        /// <summary>
+        /// Start is called on the frame when a script is enabled just before
+        /// any of the Update methods is called the first time.
+        /// </summary>
+        void Start()
+        {
+            LoadFromSavedData();
+        }
+
+        /// <summary>
+        /// Callback sent to all game objects before the application is quit.
+        /// </summary>
+        void OnApplicationQuit()
+        {
+            SaveToSavedData();
+        }
+
+        private void LoadFromSavedData()
+        {
+            SaveData data = SaveSystem.LoadData<SaveData>(SaveDataPath);
+            if (data != null)
+            {
+                m_KnownUsers = data.Users;
+            }
+        }
+
+        private void SaveToSavedData()
+        {
+            SaveData data = new SaveData { Users = m_KnownUsers };
+            SaveSystem.SaveData(SaveDataPath, data);
+        }
+
+        public void HandleWin(TwitchUser winningUser)
+        {
+            foreach (var user in m_CurrentUsers)
+            {
+                if (user.Equals(winningUser))
+                {
+                    user.Balls = 0;
+                }
+                else
+                {
+                    if (user.Status == GameUserStatus.ME)
+                    {
+                        user.Balls++;
+                    }
+                }
+            }
+
+            ClearCurrentUsers();
+        }
+
+        private void ClearCurrentUsers()
+        {
+            foreach (var user in m_CurrentUsers)
+            {
+                user.Status = GameUserStatus.OUT;
+            }
+
+            m_CurrentUsers.Clear();
+        }
+
         private GameUser FindUser(TwitchUser user)
         {
             GameUser gameUser = null;
@@ -119,7 +183,7 @@ namespace Raffle
         {
             foreach (var gameUser in list)
             {
-                if (((TwitchUser)gameUser).Equals(user))
+                if (gameUser.Equals(user))
                 {
                     return gameUser;
                 }

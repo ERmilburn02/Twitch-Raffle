@@ -10,8 +10,11 @@ namespace Raffle
         public static void SaveData(string fileName, object data)
         {
             XmlSerializer serializer = new XmlSerializer(data.GetType());
+            serializer.UnknownNode += new XmlNodeEventHandler(serializer_UnknownNode);
+            serializer.UnknownAttribute += new XmlAttributeEventHandler(serializer_UnknownAttribute);
 
             string filePath = Path.Combine(Application.persistentDataPath, fileName);
+            EnsureDirectoryExists(filePath);
 
             try
             {
@@ -31,8 +34,11 @@ namespace Raffle
         public static T LoadData<T>(string fileName)
         {
             XmlSerializer serializer = new XmlSerializer(typeof(T));
+            serializer.UnknownNode += new XmlNodeEventHandler(serializer_UnknownNode);
+            serializer.UnknownAttribute += new XmlAttributeEventHandler(serializer_UnknownAttribute);
 
             string filePath = Path.Combine(Application.persistentDataPath, fileName);
+            EnsureDirectoryExists(filePath);
 
             try
             {
@@ -56,6 +62,27 @@ namespace Raffle
 
                 return default(T);
             }
+        }
+
+        private static void EnsureDirectoryExists(string filePath)
+        {
+            string directoryPath = Path.GetDirectoryName(filePath);
+
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+        }
+
+        private static void serializer_UnknownNode(object sender, XmlNodeEventArgs e)
+        {
+            Debug.LogWarning($"Unknown Node: {e.Name}\t{e.Text}");
+        }
+
+        private static void serializer_UnknownAttribute(object sender, XmlAttributeEventArgs e)
+        {
+            System.Xml.XmlAttribute attr = e.Attr;
+            Debug.LogWarning($"Unknown attribute {attr.Name}='{attr.Value}'");
         }
     }
 }
